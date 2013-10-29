@@ -21,34 +21,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.nirima.jenkins.repo.util;
+package com.nirima.jenkins.repo.build;
 
-import hudson.maven.MavenBuild;
-import hudson.maven.reporters.MavenArtifact;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Date;
 
-import com.nirima.jenkins.repo.build.ArtifactMD5RepositoryItem;
-import com.nirima.jenkins.repo.build.ArtifactRepositoryItem;
-import com.nirima.jenkins.repo.build.DirectoryRepositoryItem;
+import com.nirima.jenkins.repo.RepositoryDirectory;
+import com.nirima.jenkins.repo.fs.VirtualRepositoryItem;
 
 /**
- *  When called back, insert found artifacts into a directory.
+ * Represent a maven repository item.
  */
-public class DirectoryPopulatorVisitor extends HudsonVisitor {
+public class ArtifactMD5RepositoryItem extends VirtualRepositoryItem {
 
-    DirectoryRepositoryItem root;
-    public boolean allowOverwrite;
-
-    public DirectoryPopulatorVisitor(DirectoryRepositoryItem root, boolean allowOverwrite)
+    ArtifactRepositoryItem item = null;
+    public ArtifactMD5RepositoryItem(RepositoryDirectory parent, ArtifactRepositoryItem mavenArtifact)
     {
-        this.root = root;
-        this.allowOverwrite = allowOverwrite;
+        super(parent, mavenArtifact.getName() + ".md5");
+        this.item = mavenArtifact;
     }
 
-    public @Override void visitArtifact(MavenBuild build, MavenArtifact mavenArtifact)
-    {    	
-        ArtifactRepositoryItem repositoryItem = new ArtifactRepositoryItem(build, mavenArtifact);
-        ArtifactMD5RepositoryItem md5RepoItem = new ArtifactMD5RepositoryItem(repositoryItem.getParent(), repositoryItem);
-        root.insert(repositoryItem, repositoryItem.getArtifactPath(), allowOverwrite);
-        root.insert(md5RepoItem, repositoryItem.getArtifactPath(), allowOverwrite);
+    public InputStream getContent() throws Exception {
+        return new ByteArrayInputStream(item.getMd5Sum().getBytes("UTF-8"));
     }
+
+    public String getLastModified() {
+        return item.getLastModified();
+    }
+
+    public Long getSize() {
+        return 32L;
+    }
+
+    @Override
+    protected long getLastModTimeStamp() {
+        return 0;
+    }
+   
 }

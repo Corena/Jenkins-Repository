@@ -33,6 +33,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -45,7 +46,7 @@ public class DirectoryRepositoryItem extends AbstractRepositoryElement implement
     protected Map<String, RepositoryElement> items;
 
     protected String name;
-
+    private MetadataRepositoryItem mdItem = null;
     public DirectoryRepositoryItem(RepositoryDirectory parent, String name) {
         super(parent);
         this.name = name;
@@ -105,11 +106,28 @@ public class DirectoryRepositoryItem extends AbstractRepositoryElement implement
         }
         getItems().put(dirElement.getName(), dirElement);
         dirElement.setParent(this);
+        if (dirElement instanceof ArtifactRepositoryItem) {
+            addToMetadata((ArtifactRepositoryItem)dirElement);
+        }
         return dirElement;
     }
 
     public RepositoryElement getChild(String element)
     {
+       if (LOGGER.isLoggable(Level.FINE)) {
+           LOGGER.fine("Get "+element+ " in "+getItems().keySet());
+       }
        return getItems().get(element);
+    }
+    private void addToMetadata(ArtifactRepositoryItem item) {
+        if (mdItem == null) {
+            mdItem = new MetadataRepositoryItem(this, item.getBuild());
+            this.add(mdItem, true);
+            MetadataMD5RepositoryItem md5 = new MetadataMD5RepositoryItem(mdItem, this);
+            this.add(md5, true);
+            LOGGER.fine("Added "+mdItem.getName()+" to "+this.getPath());
+        }
+        LOGGER.fine("Adding "+item.getName()+" to "+mdItem.getPath());
+        mdItem.addArtifact(item);
     }
 }

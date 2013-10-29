@@ -27,6 +27,8 @@ import com.nirima.jenkins.repo.RepositoryContent;
 import hudson.maven.MavenBuild;
 import hudson.maven.reporters.MavenArtifact;
 import hudson.model.Run;
+
+import com.nirima.jenkins.repo.MavenMetadata;
 import com.nirima.jenkins.repo.RepositoryDirectory;
 import com.nirima.jenkins.repo.RepositoryElement;
 
@@ -40,18 +42,21 @@ import java.util.Date;
  */
 public class ArtifactRepositoryItem implements RepositoryContent {
 
-    private MavenArtifact artifact;
+    protected MavenArtifact artifact;
     private RepositoryDirectory directory;
     private MavenBuild build;
+    private MavenMetadata metadata;
 
     public ArtifactRepositoryItem(MavenBuild build, MavenArtifact mavenArtifact)
     {
         this.artifact = mavenArtifact;
         this.build    = build;
+        this.metadata = new MavenMetadata(mavenArtifact, build);
     }
 
     public String getName() {
-        return artifact.canonicalName;
+        String fileName = metadata.getUniqueName();
+        return fileName;
     }
 
     public RepositoryDirectory getParent() {
@@ -83,8 +88,7 @@ public class ArtifactRepositoryItem implements RepositoryContent {
         return "From Build #" + build.getNumber() + " of " + build.getParentBuild().getParent().getName();
     }
 
-    public File getFile()
-    {
+    public File getFile() {
         File fPath = new File(new File(new File(build.getArtifactsDir(), artifact.groupId), artifact.artifactId), artifact.version);
         File fArtifact;
 
@@ -107,5 +111,37 @@ public class ArtifactRepositoryItem implements RepositoryContent {
     public String getArtifactPath()
     {
         return artifact.groupId.replace('.','/') + "/" + artifact.artifactId + '/' + artifact.version + "/" + artifact.canonicalName;
+    }
+    
+    public String getBuildNo() {
+        return Integer.toString(build.getNumber());
+    }
+    
+    public MavenBuild getBuild() {
+        return build;
+    }
+    
+    public String getVersion() {
+        return artifact.version;
+    }
+    
+    public String getClassifier() {
+        return artifact.classifier;
+    }
+    
+    public String getType() {
+        return artifact.type;
+    }
+    public String getGroupId() {
+        return artifact.groupId;
+    }
+    public String getArtifactId() {
+        return artifact.artifactId;
+    }
+    public String getMd5Sum() {
+        return artifact.md5sum;
+    }
+    public MavenMetadata getMavenMetadata() {
+        return metadata;
     }
 }

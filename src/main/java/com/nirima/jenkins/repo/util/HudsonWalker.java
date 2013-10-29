@@ -24,6 +24,7 @@
 package com.nirima.jenkins.repo.util;
 
 import com.google.common.collect.Lists;
+import com.nirima.jenkins.RepositoryPlugin;
 import com.nirima.jenkins.repo.RepositoryElement;
 import com.nirima.jenkins.repo.build.ArtifactRepositoryItem;
 import hudson.maven.MavenBuild;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -47,7 +49,7 @@ import java.util.Map;
  * To change this template use File | Settings | File Templates.
  */
 public class HudsonWalker {
-
+    private static final Logger LOGGER = Logger.getLogger(HudsonWalker.class.getName());
     /**
      * visit everything in order.
      *
@@ -96,17 +98,31 @@ public class HudsonWalker {
             return;
 
         traverse(visitor, run);
-        Cause.UpstreamCause upstream = (Cause.UpstreamCause)run.getCause(Cause.UpstreamCause.class);
-        if( upstream != null )
-        {
-            String project = upstream.getUpstreamProject();
-            int build = upstream.getUpstreamBuild();
+		System.out.println("Traverse :"+run+" of "+run.getClass());
+		if (run instanceof AbstractBuild) {
+			 AbstractBuild thisBuild = (AbstractBuild)run;
+			 Map<AbstractProject,Integer> upstreams = thisBuild.getUpstreamBuilds();
+			 System.out.println("Found :"+upstreams+" entry "+upstreams.entrySet());
+			 for (AbstractProject proj : upstreams.keySet()) {
+				AbstractBuild upBuild = thisBuild.getUpstreamRelationshipBuild(proj);
+				System.out.println("Traverse :"+upBuild+" for "+proj);
+				if (upBuild != null) {
+					traverseChain(visitor, upBuild);	
+				}
+			 }		
+		} else {
+			Cause.UpstreamCause upstream = (Cause.UpstreamCause)run.getCause(Cause.UpstreamCause.class);
+			if( upstream != null )
+			{
+				String project = upstream.getUpstreamProject();
+				int build = upstream.getUpstreamBuild();
 
-            AbstractProject item = (AbstractProject)Hudson.getInstance().getItem(project);
-            Run r = (Run)item.getBuilds().get(build);
+				AbstractProject item = (AbstractProject)Hudson.getInstance().getItem(project);
+				Run r = (Run)item.getBuilds().get(build);
 
-            traverseChain(visitor, run);
-        }
+				traverseChain(visitor, run);
+			}
+		}
     }
 
     /**
@@ -130,6 +146,7 @@ public class HudsonWalker {
                     MavenArtifactRecord artifacts = build.getAction(MavenArtifactRecord.class);
                     if( artifacts != null )
                     {
+                        LOGGER.fine("Visit "+artifacts.pomArtifact);
                         visitor.visitArtifact(build, artifacts.pomArtifact);
 
                         if (artifacts.mainArtifact != artifacts.pomArtifact) {
@@ -137,6 +154,7 @@ public class HudsonWalker {
                             visitor.visitArtifact(build, artifacts.mainArtifact);
                         }
                         for (MavenArtifact art : artifacts.attachedArtifacts) {
+                            LOGGER.fine("Visit "+art.artifactId);
                             visitor.visitArtifact(build, art);
                         }
                     }

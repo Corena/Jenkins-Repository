@@ -21,46 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.nirima.jenkins.repo.fs;
+package com.nirima.jenkins.repo.build;
 
-import com.nirima.jenkins.repo.AbstractRepositoryElement;
-import com.nirima.jenkins.repo.RepositoryContent;
-import com.nirima.jenkins.repo.RepositoryDirectory;
-import com.nirima.jenkins.repo.RepositoryElement;
+import hudson.Util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
-public class FileRepositoryItem extends AbstractRepositoryElement implements RepositoryContent {
-    protected String name;
-    protected File item;
-
-    protected FileRepositoryItem(RepositoryDirectory parent, File item, String name) {
-        super(parent);
-        this.name = name;
+import com.nirima.jenkins.repo.RepositoryDirectory;
+import com.nirima.jenkins.repo.fs.VirtualRepositoryItem;
+/**
+ * Represent a maven repository item.
+ */
+public class MetadataMD5RepositoryItem extends VirtualRepositoryItem {
+    
+    private static final String MD_FILE_NAME_MD5 = "maven-metadata.xml.md5";
+    
+    private String content = null;
+    
+    private MetadataRepositoryItem item = null;
+    
+    public MetadataMD5RepositoryItem(MetadataRepositoryItem item, RepositoryDirectory parent) {
+        super(parent, MD_FILE_NAME_MD5);
         this.item = item;
     }
 
-    @Override
     public String getName() {
-        return name;  //To change body of implemented methods use File | Settings | File Templates.
+        return MD_FILE_NAME_MD5;
     }
 
     public InputStream getContent() throws Exception {
-        return new FileInputStream(item);
+        createContent();
+        return new ByteArrayInputStream(content.getBytes("UTF-8"));
     }
 
-    public String getLastModified() {
-        return "" + item.lastModified();  //To change body of implemented methods use File | Settings | File Templates.
+    private String createContent() throws Exception, IOException {
+        InputStream stream = item.getContent();
+        content = Util.getDigestOf(stream);
+        return content;
+    }
+
+    protected long getLastModTimeStamp() {
+        return item.getLastModTimeStamp();
     }
 
     public Long getSize() {
-        return item.length();  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    public String getDescription() {
-        return "";  //To change body of implemented methods use File | Settings | File Templates.
+        return 32L;
     }
 }

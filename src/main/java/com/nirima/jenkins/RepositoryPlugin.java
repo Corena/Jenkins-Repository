@@ -41,13 +41,15 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import hudson.plugins.git.util.BuildData;
 
 
 @Extension
 public class RepositoryPlugin extends Plugin {
     private ServletContext context;
+    private static final Logger LOGGER = Logger.getLogger(RepositoryPlugin.class.getName());
 
     public RepositoryPlugin() {
 
@@ -86,8 +88,8 @@ public class RepositoryPlugin extends Plugin {
                 for (String element : pathElements) {
                     if (currentItem instanceof RepositoryDirectory) {
                         RepositoryDirectory currentDirectory = (RepositoryDirectory) currentItem;
-                        currentItem = currentDirectory.getChild(element);
-                    }
+                        currentItem = currentDirectory.getChild(element);                        
+                    } 
 
                 }
             }
@@ -102,27 +104,34 @@ public class RepositoryPlugin extends Plugin {
 
     private void displayElement(StaplerRequest req, StaplerResponse rsp, RepositoryElement currentItem) throws Exception {
         OutputStream os = rsp.getOutputStream();
-
-        if (currentItem instanceof RepositoryDirectory) {
-
-            rsp.setContentType("text/html;charset=UTF-8");
-
-            printHeader(os, req, (RepositoryDirectory) currentItem);
-
-            for (RepositoryElement element : ((RepositoryDirectory) currentItem).getChildren()) {
-                printDirEntry(os, element);
+        try {
+            if (currentItem instanceof RepositoryDirectory) {
+    
+                rsp.setContentType("text/html;charset=UTF-8");
+    
+                printHeader(os, req, (RepositoryDirectory) currentItem);
+    
+                for (RepositoryElement element : ((RepositoryDirectory) currentItem).getChildren()) {
+                    printDirEntry(os, element);
+                }
+    
+                printFooter(os);
+            } else if (currentItem != null) {
+                RepositoryContent content = (RepositoryContent) currentItem;
+                if (content.getName().endsWith(".xml")) 
+                    rsp.setContentType("text/xml;charset=UTF-8");
+                InputStream is = content.getContent();
+                // DL Element
+                IOUtils.copy(is, os);
+    
+                os.flush();
+    
+            } else {
+            	rsp.sendError(StaplerResponse.SC_NOT_FOUND);
             }
-
-            printFooter(os);
-        } else {
-            RepositoryContent content = (RepositoryContent) currentItem;
-
-            InputStream is = content.getContent();
-            // DL Element
-            IOUtils.copy(is, os);
-
-            os.flush();
-
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+            rsp.sendError(StaplerResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 

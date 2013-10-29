@@ -23,44 +23,31 @@
  */
 package com.nirima.jenkins.repo.fs;
 
+import java.util.Date;
+
 import com.nirima.jenkins.repo.AbstractRepositoryElement;
 import com.nirima.jenkins.repo.RepositoryContent;
 import com.nirima.jenkins.repo.RepositoryDirectory;
-import com.nirima.jenkins.repo.RepositoryElement;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-
-public class FileRepositoryItem extends AbstractRepositoryElement implements RepositoryContent {
+public abstract class VirtualRepositoryItem extends AbstractRepositoryElement implements RepositoryContent {
     protected String name;
-    protected File item;
 
-    protected FileRepositoryItem(RepositoryDirectory parent, File item, String name) {
+    protected VirtualRepositoryItem(RepositoryDirectory parent, String name) {
         super(parent);
         this.name = name;
-        this.item = item;
     }
 
     @Override
     public String getName() {
-        return name;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    public InputStream getContent() throws Exception {
-        return new FileInputStream(item);
-    }
-
-    public String getLastModified() {
-        return "" + item.lastModified();  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    public Long getSize() {
-        return item.length();  //To change body of implemented methods use File | Settings | File Templates.
+        return name;
     }
 
     public String getDescription() {
-        return "";  //To change body of implemented methods use File | Settings | File Templates.
+        return "";
+    }
+    protected abstract long getLastModTimeStamp();
+    
+    public String getLastModified() {
+        return "" + new Date( getLastModTimeStamp() ).toLocaleString();
     }
 }
